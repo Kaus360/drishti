@@ -1,0 +1,11 @@
+ultralytics
+fastapi
+uvicorn
+opencv-python
+torch
+torchvision
+roboflow
+requests
+python-multipart
+pandas
+pillow
