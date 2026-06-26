@@ -1,0 +1,29 @@
+==============================================
+ DRISHTI — YOLOv8 Training Report
+ Hackathon: Tata Technologies InnoVent 2026
+==============================================
+
+Dataset        : Hard Hat Workers (Roboflow Universe)
+                 Workspace : roboflow-universe-projects
+                 Project   : hard-hat-sample  |  Version: 2
+
+Model          : YOLOv8-nano (yolov8n.pt base)
+Epochs         : 60 (early stop patience = 15)
+Image Size     : 640 x 640
+Batch Size     : 16
+Optimizer      : AdamW  |  lr0 = 0.001
+Augmentations  : mosaic=1.0, hsv_h=0.015, hsv_s=0.7, hsv_v=0.4, flipud=0.1
+
+── Results ────────────────────────────────
+mAP50          : 0.7672   (target > 0.70)
+mAP50-95       : 0.4552  (target > 0.45)
+Precision      : 0.8815  (target > 0.70)
+Recall         : 0.6957  (target > 0.65)
+
+Classes        : Hardhat, Mask, NO-Hardhat, NO-Mask, NO-Safety Vest, Person, Safety Cone, Safety Vest, machinery, vehicle
+                 (Key violation classes: NO-Hardhat, NO-Safety Vest, NO-Mask)
+
+── Output Files ───────────────────────────
+best.pt        : training/best.pt
+Notebook       : training/drishti_training.ipynb
+==============================================
