@@ -1,3 +1,4 @@
+# Internal dev verification script — not the official API test suite. See tests/test_api.py for that (owned by Tanisha).
 import base64
 import cv2
 import numpy as np
