@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Video, AlertTriangle, BarChart3, Settings as SettingsIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { API_ENDPOINTS } from '../config/api';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -20,9 +21,23 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    const checkHealth = async () => {
+      try {
+        const res = await fetch(API_ENDPOINTS.health, { signal: AbortSignal.timeout(2000) });
+        setIsOnline(res.ok);
+      } catch {
+        setIsOnline(false);
+      }
+    };
+
+    checkHealth();
+    const interval = setInterval(checkHealth, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="flex min-h-screen bg-background text-white">
-      {/* Sidebar */}
       <aside className="w-64 bg-black/30 backdrop-blur-xl border-r border-white/10 flex flex-col p-4">
         <div className="flex items-center gap-2 mb-8 px-2">
           <div className="w-8 h-8 rounded bg-primary flex items-center justify-center font-bold">D</div>
@@ -50,7 +65,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </nav>
       </aside>
 
-      {/* Main content */}
       <div className="flex-1 flex flex-col">
         <header className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-black/20 backdrop-blur-xl">
           <div>
@@ -68,7 +82,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   : 'bg-red-500/10 text-red-400 border-red-500/30'
               }`}
             >
-              {isOnline ? 'ACTIVE' : 'OFFLINE'}
+              {isOnline ? 'ONLINE' : 'OFFLINE'}
             </span>
           </div>
         </header>

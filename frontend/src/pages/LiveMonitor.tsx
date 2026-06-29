@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { API_ENDPOINTS } from '../config/api';
+import { formatViolationType } from '../utils/labels';
 
 export default function LiveMonitor() {
   const [streamError, setStreamError] = useState(false);
   const [isLive, setIsLive] = useState(false);
+  const [violations, setViolations] = useState<any[]>([]);
 
   useEffect(() => {
     const checkHealth = async () => {
@@ -19,10 +21,31 @@ export default function LiveMonitor() {
     return () => clearInterval(interval);
   }, []);
 
-  const violations = [
-    { id: 1, label: 'No Helmet', confidence: 92 },
-    { id: 2, label: 'No Vest', confidence: 87 },
-  ];
+  useEffect(() => {
+    const fetchAlerts = async () => {
+      try {
+        const res = await fetch(API_ENDPOINTS.alertsLatest, { signal: AbortSignal.timeout(2000) });
+        if (!res.ok) {
+          return;
+        }
+
+        const data = await res.json();
+        setViolations(
+          (data.alerts ?? []).map((alert: any) => ({
+            id: alert.id,
+            label: alert.type,
+            confidence: alert.confidence,
+          }))
+        );
+      } catch {
+        // Keep the last successful alert list during transient polling failures.
+      }
+    };
+
+    fetchAlerts();
+    const interval = setInterval(fetchAlerts, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -67,7 +90,7 @@ export default function LiveMonitor() {
             {violations.map((v) => (
               <div key={v.id} className="bg-red-500/10 border border-red-500/20 rounded-xl p-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-red-300">{v.label}</span>
+                  <span className="text-sm font-medium text-red-300">{formatViolationType(v.label)}</span>
                   <span className="text-xs text-slate-400">{v.confidence}%</span>
                 </div>
               </div>
