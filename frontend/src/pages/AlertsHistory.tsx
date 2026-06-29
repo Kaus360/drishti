@@ -1,22 +1,45 @@
-import { useState } from 'react';
-
-const mockAlerts = [
-  { id: 1, type: 'No Helmet', date: '2026-06-20 09:12', confidence: 92 },
-  { id: 2, type: 'No Vest', date: '2026-06-20 08:47', confidence: 87 },
-  { id: 3, type: 'No Helmet', date: '2026-06-19 17:30', confidence: 95 },
-  { id: 4, type: 'No Goggles', date: '2026-06-19 14:05', confidence: 81 },
-];
+import { useEffect, useState } from 'react';
+import { API_ENDPOINTS } from '../config/api';
+import { formatViolationType } from '../utils/labels';
 
 function badgeColor(type: string) {
-  if (type === 'No Helmet') return 'bg-red-500/10 text-red-300 border-red-500/30';
-  if (type === 'No Vest') return 'bg-orange-500/10 text-orange-300 border-orange-500/30';
+  const normalized = type.toLowerCase();
+  if (normalized.includes('helmet') || normalized.includes('hardhat')) {
+    return 'bg-red-500/10 text-red-300 border-red-500/30';
+  }
+  if (normalized.includes('vest')) {
+    return 'bg-orange-500/10 text-orange-300 border-orange-500/30';
+  }
   return 'bg-yellow-500/10 text-yellow-300 border-yellow-500/30';
 }
 
 export default function AlertsHistory() {
   const [filterType, setFilterType] = useState('All');
+  const [alerts, setAlerts] = useState<any[]>([]);
 
-  const filtered = mockAlerts.filter((a) => filterType === 'All' || a.type === filterType);
+  useEffect(() => {
+    const fetchAlerts = async () => {
+      try {
+        const res = await fetch(API_ENDPOINTS.alertsLatest, { signal: AbortSignal.timeout(2000) });
+        if (!res.ok) {
+          return;
+        }
+
+        const data = await res.json();
+        setAlerts(data.alerts ?? []);
+      } catch {
+        // Keep the last successful alert list during transient polling failures.
+      }
+    };
+
+    fetchAlerts();
+    const interval = setInterval(fetchAlerts, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const filtered = alerts.filter(
+    (a) => filterType === 'All' || formatViolationType(a.type) === filterType
+  );
 
   const exportCSV = () => {
     const header = 'ID,Type,Date,Confidence\n';
@@ -45,7 +68,7 @@ export default function AlertsHistory() {
       </div>
 
       <div className="flex gap-2">
-        {['All', 'No Helmet', 'No Vest', 'No Goggles'].map((t) => (
+        {['All', 'No Helmet', 'No Vest', 'No Goggles', 'No Mask'].map((t) => (
           <button
             key={t}
             onClick={() => setFilterType(t)}
@@ -70,17 +93,20 @@ export default function AlertsHistory() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((a) => (
-              <tr key={a.id} className="border-t border-white/10">
-                <td className="px-4 py-3">
-                  <span className={`px-2 py-1 rounded-full text-xs border ${badgeColor(a.type)}`}>
-                    {a.type}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-slate-300">{a.date}</td>
-                <td className="px-4 py-3 text-slate-300">{a.confidence}%</td>
-              </tr>
-            ))}
+            {filtered.map((a) => {
+              const displayType = formatViolationType(a.type);
+              return (
+                <tr key={a.id} className="border-t border-white/10">
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 rounded-full text-xs border ${badgeColor(displayType)}`}>
+                      {displayType}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-slate-300">{a.date}</td>
+                  <td className="px-4 py-3 text-slate-300">{a.confidence}%</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

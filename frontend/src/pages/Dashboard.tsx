@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, ShieldCheck, Camera, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { API_ENDPOINTS } from '../config/api';
 
 function StatCard({ icon: Icon, label, value, suffix, trend, color }: any) {
   return (
@@ -25,22 +26,61 @@ function StatCard({ icon: Icon, label, value, suffix, trend, color }: any) {
 }
 
 export default function Dashboard() {
-  const [compliance, setCompliance] = useState(0);
+  const [stats, setStats] = useState({
+    violationsToday: 0,
+    complianceRate: 100,
+    activeCameras: 1,
+    workersMonitored: 0,
+  });
+  const [compliance, setCompliance] = useState(100);
 
   useEffect(() => {
-    const target = 78.4;
-    let current = 0;
-    const step = target / 30;
-    const interval = setInterval(() => {
-      current += step;
-      if (current >= target) {
-        current = target;
-        clearInterval(interval);
+    const fetchStats = async () => {
+      try {
+        const res = await fetch(API_ENDPOINTS.alertsCount, { signal: AbortSignal.timeout(2000) });
+        if (!res.ok) {
+          return;
+        }
+
+        const data = await res.json();
+        setStats({
+          violationsToday: data.violationsToday ?? 0,
+          complianceRate: data.complianceRate ?? 100,
+          activeCameras: data.activeCameras ?? 1,
+          workersMonitored: data.workersMonitored ?? 0,
+        });
+      } catch {
+        // Keep the last successful values during transient polling failures.
       }
-      setCompliance(Number(current.toFixed(1)));
-    }, 20);
+    };
+
+    fetchStats();
+    const interval = setInterval(fetchStats, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      let shouldStop = false;
+
+      setCompliance((prev) => {
+        const target = Number(stats.complianceRate ?? 100);
+        const diff = target - prev;
+        if (Math.abs(diff) < 0.1) {
+          shouldStop = true;
+          return Number(target.toFixed(1));
+        }
+
+        return Number((prev + diff / 6).toFixed(1));
+      });
+
+      if (shouldStop) {
+        clearInterval(interval);
+      }
+    }, 50);
+
+    return () => clearInterval(interval);
+  }, [stats.complianceRate]);
 
   const circumference = 2 * Math.PI * 70;
   const offset = circumference - (compliance / 100) * circumference;
@@ -56,14 +96,14 @@ export default function Dashboard() {
         <StatCard
           icon={AlertTriangle}
           label="Violations Today"
-          value={12}
+          value={stats.violationsToday}
           trend="Down 12% vs yesterday"
           color="bg-red-500/10 text-red-400"
         />
         <StatCard
           icon={ShieldCheck}
           label="Compliance Rate"
-          value={78.4}
+          value={stats.complianceRate}
           suffix="%"
           trend="Up 4% vs yesterday"
           color="bg-green-500/10 text-green-400"
@@ -71,14 +111,14 @@ export default function Dashboard() {
         <StatCard
           icon={Camera}
           label="Active Cameras"
-          value={8}
+          value={stats.activeCameras}
           trend="No change vs yesterday"
           color="bg-cyan-500/10 text-cyan-400"
         />
         <StatCard
           icon={Users}
           label="Workers Monitored"
-          value={142}
+          value={stats.workersMonitored}
           trend="Up 6% vs yesterday"
           color="bg-orange-500/10 text-orange-400"
         />
