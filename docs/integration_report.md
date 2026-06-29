@@ -9,27 +9,27 @@
 
 ## Executive Summary
 
-The backend (FastAPI + YOLOv8) and frontend (React dashboard) were independently configured, launched, and connected on a clean local environment. Of the seven integration checks performed, **six passed successfully**, confirming that the core real-time PPE detection pipeline — camera capture, AI inference, and live dashboard rendering — functions correctly end-to-end.
+The backend (FastAPI + YOLOv8) and frontend (React dashboard) were independently configured, launched, and connected on a clean local environment. On final re-verification, **all seven integration checks passed**, confirming that the complete real-time PPE detection pipeline — camera capture, AI inference, live dashboard rendering, and live alert logging — functions correctly end-to-end.
 
-One functional gap was identified: two dashboard views (statistics and alert history) do not refresh with live detection data. Root cause and a plain-language fix are detailed in **Section 3**. All findings below have been verified independently and are ready for the development team's review.
+Two issues were identified during the initial testing pass (static Dashboard stats and a non-reflective Alerts History page). Both were reported to the Backend and Frontend leads, fixed and merged into `main`, and have now been independently re-verified as resolved. Full before/after detail is in **Section 3**.
 
 ---
 
-## 1. Integration Checklist Results
+## 1. Integration Checklist Results — Final Re-Verification
 
-Each item was tested manually against the live running system.
+Each item was re-tested manually against the live running system after the team's fixes were merged.
 
 | Check | Result | Observation |
 |---|---|---|
 | Health Endpoint | ✅ PASS | Backend responded correctly at `/health` with status, model name, and project name. |
 | Dashboard Loads | ✅ PASS | All dashboard sections (stats cards, compliance chart) render with no blank screen. |
 | Live Camera Feed | ✅ PASS | Real webcam feed displayed with live AI bounding boxes (Hardhat, Mask, Safety Vest). |
-| Alerts Feed | ✅ PASS | Alerts History page lists violations with type, timestamp, and confidence score. |
-| Stats Auto-Update | ❌ FAIL | Dashboard numbers remained unchanged after 20+ seconds of observation. |
+| Alerts Feed | ✅ PASS | Alerts History page now logs new violations in real time, with current-session timestamps (verified at 2026-06-29 12:31 onward). |
+| Stats Auto-Update | ✅ PASS | Dashboard numbers (Violations Today, Compliance Rate, etc.) now increment live, confirmed across multiple 15–20 second observation windows. |
 | Page Navigation | ✅ PASS | All five sidebar pages load successfully with no errors or blank screens. |
 | CORS / Console | ✅ PASS | Zero errors and zero warnings in browser console; no cross-origin issues detected. |
 
-**Result: 6 of 7 checks passed (86%).**
+**Result: 7 of 7 checks passed (100%).**
 
 ---
 
@@ -51,23 +51,19 @@ Each item was tested manually against the live running system.
 
 Each issue includes what was observed, the likely technical cause, and a plain-language fix that any team member can act on without needing the full debugging context.
 
-### Issue 1 — Dashboard and Alerts History do not reflect live detections
-**Severity:** Medium
+### Issue 1 — Dashboard and Alerts History did not reflect live detections *(Resolved)*
+**Severity:** Resolved
 
-**What was observed:** The Dashboard statistics (Violations Today, Compliance Rate, Active Cameras, Workers Monitored) and the Alerts History table do not update when new violations are detected live on the Live Monitor page. Both continue to display the same fixed values regardless of new detections.
+**What was observed:** The Dashboard statistics and the Alerts History table did not update when new violations were detected live on the Live Monitor page.
 
-**Likely cause:** The Live Monitor page is confirmed to be genuinely live — it streams real camera frames and polls the backend's `/health` endpoint every few seconds. The Dashboard and Alerts History pages, however, do not show this same repeated-polling behavior, which strongly suggests they are reading from a static or seed dataset instead of the live detection stream.
+**Fix applied & verified:** Backend Lead and Frontend Developer merged a fix into `main` (changes to `backend/alerts.py`, `backend/main.py`, `Dashboard.tsx`, and `AlertsHistory.tsx`). Re-tested after pulling the fix: Dashboard numbers now increment live, and Alerts History logs each new detection with a current, real-time timestamp. Confirmed working as of 2026-06-29.
 
-**Recommended fix (in simple terms):** Two pages in the app are showing old, fixed sample numbers instead of checking in with the AI brain (the backend) for updates. The Live Monitor page already does this correctly — it asks the backend for new information every few seconds. The Dashboard and Alerts History pages need to do the same thing: add a repeating timer (the same kind already used on Live Monitor) to these two pages, and point them to read from the live results the backend produces, rather than from a fixed list of sample numbers.
+### Issue 2 — "OFFLINE" status badge stuck regardless of actual connection state *(Resolved)*
+**Severity:** Resolved
 
-### Issue 2 — "OFFLINE" status badge stuck regardless of actual connection state
-**Severity:** Low
+**What was observed:** The status badge at the top-right corner of every page permanently displayed "OFFLINE", even while the rest of the app was working correctly.
 
-**What was observed:** The status badge at the top-right corner of every page permanently displays "OFFLINE", even while the Live Monitor feed and Alerts data are confirmed to be working correctly.
-
-**Likely cause:** This is most likely a separate, narrower status check used only for that one badge, which is not correctly reading the real connection state that the rest of the app uses successfully.
-
-**Recommended fix (in simple terms):** The small red "OFFLINE" label in the corner is asking a different, possibly outdated question than the rest of the app. It probably needs to be pointed at the same health/connection check that the Live Monitor page already uses successfully, so it shows "ONLINE" once that check succeeds.
+**Fix applied & verified:** Fixed as part of the same merge (`Layout.tsx` updated). Re-tested: badge now correctly displays "ONLINE" in green across all pages.
 
 ### Issue 3 — AI model file (best.pt) missing from main branch *(Resolved during testing)*
 **Severity:** Resolved
@@ -91,10 +87,11 @@ For future reference, the following environment-specific steps were required and
 
 ## 5. Next Steps
 
-1. Backend/Frontend team to review and address Issue 1 and Issue 2 above.
-2. Once addressed, integration testing will be re-run to confirm the Dashboard and Alerts History pages reflect live data.
-3. Demo video recording to follow immediately after re-verification.
-4. Final PPT and demo assets to be committed to the `feature/member5-integration` branch with a pull request opened for review.
+1. ✅ ~~Backend/Frontend team to review and address Issue 1 and Issue 2~~ — **Done.**
+2. ✅ ~~Re-run integration testing to confirm fixes~~ — **Done, 7/7 checks now pass.**
+3. Record demo video showing the fully working system end-to-end.
+4. Create final PPT using the Antigravity prompt and team research data.
+5. Commit demo video and PPT to the `feature/member5-integration` branch and open a Pull Request for review.
 
 ---
 
