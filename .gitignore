@@ -10,3 +10,6 @@ dist/
 build/
 .vscode/
 .idea/
+Screenshot*.png
+   .venv/
+
